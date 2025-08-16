@@ -10,35 +10,18 @@ export const Navbar = ({ onNavigateToChat }) => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const { user } = useAuth();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const { user, isAdmin, refreshAuth } = useAuth();
 
+  // Handle scroll effect
   useEffect(() => {
-    checkAdminStatus();
-  }, [user]);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
 
-  const checkAdminStatus = async () => {
-    if (user) {
-      try {
-        console.log('Checking admin status for user:', user.username);
-        const response = await api.getUserProfile();
-        console.log('User profile response:', response);
-        if (response.data && response.data.is_admin) {
-          console.log('User is admin, setting admin status to true');
-          setIsAdmin(true);
-        } else {
-          console.log('User is not admin');
-          setIsAdmin(false);
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
-      }
-    } else {
-      console.log('No user, setting admin status to false');
-      setIsAdmin(false);
-    }
-  };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLoginClick = () => {
     setIsLoginOpen(true);
@@ -58,12 +41,22 @@ export const Navbar = ({ onNavigateToChat }) => {
     setIsRegisterOpen(false);
   };
 
-  const handleLoginSuccess = async () => {
-    console.log('Login successful, checking admin status...');
-    // Check admin status after successful login
-    await checkAdminStatus();
-    
-    // Redirect to chat after successful login
+  const handleSwitchToRegister = () => {
+    setIsLoginOpen(false);
+    setIsRegisterOpen(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setIsRegisterOpen(false);
+    setIsLoginOpen(true);
+  };
+
+  const handleLoginSuccess = async ({ isAdmin: isAdminLoggedIn } = {}) => {
+    console.log('Login successful, redirecting...', { isAdminLoggedIn });
+    // If admin just logged in, do not navigate to chat; AppContent will render AdminDashboard
+    if (isAdminLoggedIn === true) {
+      return;
+    }
     if (onNavigateToChat) {
       onNavigateToChat();
     }
@@ -80,10 +73,14 @@ export const Navbar = ({ onNavigateToChat }) => {
 
   return (
     <>
-      <header className="w-full flex items-center justify-between px-6 py-4 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm sticky top-0 z-50">
+      <header className={`w-full flex items-center justify-between px-6 py-4 transition-all duration-300 sticky top-0 z-50 ${
+        isScrolled 
+          ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-100' 
+          : 'bg-white/80 backdrop-blur-sm'
+      }`}>
         {/* Logo */}
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
@@ -98,7 +95,7 @@ export const Navbar = ({ onNavigateToChat }) => {
           {isAdmin && (
             <button
               onClick={handleAdminPanelClick}
-              className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 group cursor-pointer"
+              className="flex items-center space-x-2 text-gray-700 hover:text-indigo-600 font-medium transition-colors duration-200 group cursor-pointer"
             >
               <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -109,7 +106,7 @@ export const Navbar = ({ onNavigateToChat }) => {
           
           <button
             onClick={handleLoginClick}
-            className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 group cursor-pointer"
+            className="flex items-center space-x-2 text-gray-700 hover:text-indigo-600 font-medium transition-colors duration-200 group cursor-pointer"
           >
             <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -119,7 +116,7 @@ export const Navbar = ({ onNavigateToChat }) => {
 
           <button
             onClick={handleRegisterClick}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -141,12 +138,12 @@ export const Navbar = ({ onNavigateToChat }) => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white border-b border-gray-100 shadow-lg">
+        <div className="md:hidden bg-white border-b border-gray-100 shadow-lg animate-slide-down">
           <div className="px-6 py-4 space-y-4">
             {isAdmin && (
               <button
                 onClick={handleAdminPanelClick}
-                className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 w-full"
+                className="flex items-center space-x-2 text-gray-700 hover:text-indigo-600 font-medium transition-colors duration-200 w-full"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -157,7 +154,7 @@ export const Navbar = ({ onNavigateToChat }) => {
 
             <button
               onClick={handleLoginClick}
-              className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 w-full"
+              className="flex items-center space-x-2 text-gray-700 hover:text-indigo-600 font-medium transition-colors duration-200 w-full"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -167,7 +164,7 @@ export const Navbar = ({ onNavigateToChat }) => {
 
             <button
               onClick={handleRegisterClick}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-2 w-full justify-center"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-2 w-full justify-center"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -179,8 +176,8 @@ export const Navbar = ({ onNavigateToChat }) => {
       )}
 
       {/* Modals */}
-      {isLoginOpen && <Login onClose={handleCloseLogin} onLoginSuccess={handleLoginSuccess} />}
-      {isRegisterOpen && <Register onClose={handleCloseRegister} />}
+      {isLoginOpen && <Login onClose={handleCloseLogin} onLoginSuccess={handleLoginSuccess} onSwitchToRegister={handleSwitchToRegister} />}
+      {isRegisterOpen && <Register onClose={handleCloseRegister} onSwitchToLogin={handleSwitchToLogin} />}
       {isAdminPanelOpen && <AdminPanel onClose={handleCloseAdminPanel} />}
     </>
   );

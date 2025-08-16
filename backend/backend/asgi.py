@@ -15,11 +15,10 @@ import api.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 
+# Optimized ASGI application for ultra-fast messaging
 application = ProtocolTypeRouter({
     'http': get_asgi_application(),
-    'websocket': AuthMiddlewareStack(
-        URLRouter(
-            api.routing.websocket_urlpatterns
-        )
+    'websocket': URLRouter(
+        api.routing.websocket_urlpatterns
     )
 })

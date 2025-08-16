@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Access Test</h1>
+    <button onclick="testAPI()">Test API Access</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                // Test basic API access
+                const response = await fetch('http://localhost:8000/api/debug-auth/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3>Debug Auth Response:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <p>Status: ${response.status}</p>
+                `;
+                
+                // Test send_message_new endpoint
+                console.log('Testing send_message_new endpoint...');
+                const messageResponse = await fetch('http://localhost:8000/api/send_message_new/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token'
+                    },
+                    body: JSON.stringify({
+                        receiver_email: 'test@example.com',
+                        content: 'Test message'
+                    })
+                });
+                
+                const messageData = await messageResponse.text();
+                resultDiv.innerHTML += `
+                    <h3>Send Message Response:</h3>
+                    <p>Status: ${messageResponse.status}</p>
+                    <pre>${messageData}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html> 

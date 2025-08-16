@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Display Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .message-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; }
+        .send-button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .send-button:hover { background: #0056b3; }
+        .messages-container { height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin: 10px 0; background: #f9f9f9; }
+        .message { margin: 10px 0; padding: 10px; border-radius: 5px; max-width: 70%; }
+        .message.outgoing { background: #007bff; color: white; margin-left: auto; }
+        .message.incoming { background: #e9ecef; color: black; }
+        .debug-info { background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 12px; }
+        .timestamp { font-size: 10px; opacity: 0.7; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Message Display Test</h1>
+        
+        <div class="debug-info">
+            <strong>Debug Info:</strong><br>
+            Messages in state: <span id="message-count">0</span><br>
+            Current user: <span id="current-user">testuser</span>
+        </div>
+
+        <div class="messages-container" id="messages-container">
+            <div class="message incoming">
+                <div>Welcome! This is a test message.</div>
+                <div class="timestamp">12:00 PM</div>
+            </div>
+        </div>
+
+        <div>
+            <input type="text" id="message-input" class="message-input" placeholder="Type a message..." />
+            <button onclick="sendMessage()" class="send-button">Send Message</button>
+        </div>
+
+        <div class="debug-info">
+            <strong>Console Log:</strong><br>
+            <div id="console-log" style="height: 100px; overflow-y: auto; background: #000; color: #0f0; padding: 5px; font-family: monospace; font-size: 10px;"></div>
+        </div>
+    </div>
+
+    <script>
+        let messages = [
+            {
+                id: '1',
+                content: 'Welcome! This is a test message.',
+                sender_username: 'otheruser',
+                timestamp: new Date().toISOString(),
+                is_read: true
+            }
+        ];
+
+        const currentUser = 'testuser';
+
+        function log(message) {
+            const logElement = document.getElementById('console-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function updateMessageCount() {
+            document.getElementById('message-count').textContent = messages.length;
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = '';
+
+            messages.forEach(msg => {
+                const isOutgoing = msg.sender_username === currentUser;
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isOutgoing ? 'outgoing' : 'incoming'}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.textContent = msg.content;
+                
+                const timestampDiv = document.createElement('div');
+                timestampDiv.className = 'timestamp';
+                timestampDiv.textContent = new Date(msg.timestamp).toLocaleTimeString();
+                
+                messageDiv.appendChild(contentDiv);
+                messageDiv.appendChild(timestampDiv);
+                container.appendChild(messageDiv);
+            });
+
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const content = input.value.trim();
+            
+            if (!content) {
+                log('No message content');
+                return;
+            }
+
+            log(`Sending message: "${content}"`);
+
+            // Create new message
+            const newMessage = {
+                id: `msg_${Date.now()}`,
+                content: content,
+                sender_username: currentUser,
+                timestamp: new Date().toISOString(),
+                is_read: false
+            };
+
+            log(`Created message object:`, newMessage);
+
+            // Add to messages array
+            messages.push(newMessage);
+            log(`Added to messages array. Total messages: ${messages.length}`);
+
+            // Update UI
+            updateMessageCount();
+            renderMessages();
+
+            // Clear input
+            input.value = '';
+
+            log('Message sent and displayed successfully!');
+        }
+
+        // Handle Enter key
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initialize
+        updateMessageCount();
+        log('Test page loaded. Ready to test message sending.');
+    </script>
+</body>
+</html>

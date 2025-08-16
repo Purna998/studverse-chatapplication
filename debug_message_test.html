@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-panel { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .log { background: #000; color: #0f0; padding: 10px; border-radius: 5px; height: 300px; overflow-y: auto; font-family: monospace; }
+        .test-button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .test-button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>Message Debug Test</h1>
+    
+    <div class="debug-panel">
+        <h3>WebSocket Status</h3>
+        <p>Status: <span id="ws-status">Disconnected</span></p>
+        <button class="test-button" onclick="connectWebSocket()">Connect WebSocket</button>
+        <button class="test-button" onclick="disconnectWebSocket()">Disconnect WebSocket</button>
+    </div>
+
+    <div class="debug-panel">
+        <h3>Test Message Sending</h3>
+        <input type="text" id="test-message" placeholder="Enter test message" style="width: 300px; padding: 5px;">
+        <button class="test-button" onclick="sendTestMessage()">Send Test Message</button>
+    </div>
+
+    <div class="debug-panel">
+        <h3>Debug Log</h3>
+        <div id="debug-log" class="log"></div>
+        <button class="test-button" onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        let ws = null;
+        let messageCounter = 0;
+
+        function log(message) {
+            const logElement = document.getElementById('debug-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('debug-log').innerHTML = '';
+        }
+
+        function updateStatus(status) {
+            document.getElementById('ws-status').textContent = status;
+        }
+
+        function connectWebSocket() {
+            try {
+                // Get token from localStorage (you'll need to set this manually for testing)
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    log('ERROR: No access token found. Please set one in localStorage.');
+                    return;
+                }
+
+                ws = new WebSocket(`ws://localhost:8000/ws/chat/?token=${token}`);
+                
+                ws.onopen = function() {
+                    log('WebSocket connected successfully');
+                    updateStatus('Connected');
+                };
+
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        log(`RECEIVED: ${JSON.stringify(data, null, 2)}`);
+                    } catch (error) {
+                        log(`ERROR parsing message: ${error.message}`);
+                        log(`Raw message: ${event.data}`);
+                    }
+                };
+
+                ws.onclose = function(event) {
+                    log(`WebSocket closed: ${event.code} - ${event.reason}`);
+                    updateStatus('Disconnected');
+                };
+
+                ws.onerror = function(error) {
+                    log(`WebSocket error: ${error}`);
+                    updateStatus('Error');
+                };
+
+            } catch (error) {
+                log(`ERROR connecting WebSocket: ${error.message}`);
+            }
+        }
+
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+                ws = null;
+                updateStatus('Disconnected');
+                log('WebSocket disconnected');
+            }
+        }
+
+        function sendTestMessage() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('ERROR: WebSocket not connected');
+                return;
+            }
+
+            const messageInput = document.getElementById('test-message');
+            const messageContent = messageInput.value.trim();
+            
+            if (!messageContent) {
+                log('ERROR: Please enter a message');
+                return;
+            }
+
+            messageCounter++;
+            const testMessage = {
+                message: messageContent,
+                sender: 'testuser', // This should match your test user
+                receiver: 'admin',   // This should match the other user
+                timestamp: Date.now(),
+                message_id: `test_${messageCounter}_${Date.now()}`
+            };
+
+            log(`SENDING: ${JSON.stringify(testMessage, null, 2)}`);
+            ws.send(JSON.stringify(testMessage));
+            
+            // Clear input
+            messageInput.value = '';
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            log('Debug test page loaded');
+            log('Instructions:');
+            log('1. Make sure you have a valid access token in localStorage');
+            log('2. Click "Connect WebSocket" to establish connection');
+            log('3. Enter a test message and click "Send Test Message"');
+            log('4. Watch the debug log for WebSocket activity');
+        };
+    </script>
+</body>
+</html>

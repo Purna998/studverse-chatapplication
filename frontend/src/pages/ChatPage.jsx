@@ -1,10 +1,13 @@
 import React from "react";
 import { ChatLayout } from "../components/chat/ChatLayout";
 
-const ChatPage = () => {
+const ChatPage = ({ onNavigateToNearbyMap, invitationData }) => {
   return (
     <div className="h-screen">
-      <ChatLayout />
+      <ChatLayout 
+        onNavigateToNearbyMap={onNavigateToNearbyMap} 
+        invitationData={invitationData}
+      />
     </div>
   );
 };

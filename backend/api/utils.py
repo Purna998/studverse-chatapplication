@@ -1,6 +1,9 @@
 import os
 import time
 from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+from .models import TabSession
 
 def get_profile_picture_url(request, profile_picture_field):
     """
@@ -42,6 +45,66 @@ def delete_profile_picture_file(profile_picture_field):
     Delete a profile picture file from the local directory
     """
     if not profile_picture_field:
+        return False
+
+# Tab Session Management Functions
+def get_or_create_tab_session(user, tab_id, session_key, user_agent=None):
+    """
+    Get or create a tab session for a user
+    """
+    try:
+        # Try to get existing session
+        session = TabSession.objects.get(tab_id=tab_id)
+        
+        # Update activity and user agent
+        session.last_activity = timezone.now()
+        if user_agent:
+            session.user_agent = user_agent
+        session.save()
+        
+        return session
+    except TabSession.DoesNotExist:
+        # Create new session
+        session = TabSession.objects.create(
+            user=user,
+            tab_id=tab_id,
+            session_key=session_key,
+            user_agent=user_agent
+        )
+        return session
+
+def cleanup_inactive_sessions():
+    """
+    Clean up sessions that haven't been active for more than 2 hours
+    """
+    cutoff_time = timezone.now() - timedelta(hours=2)
+    TabSession.objects.filter(
+        last_activity__lt=cutoff_time,
+        is_active=True
+    ).update(is_active=False)
+
+def get_user_active_sessions(user):
+    """
+    Get all active sessions for a user
+    """
+    cleanup_inactive_sessions()  # Clean up old sessions first
+    return TabSession.objects.filter(user=user, is_active=True)
+
+def validate_tab_session(user, tab_id, session_key):
+    """
+    Validate if a tab session is valid for the user
+    """
+    try:
+        session = TabSession.objects.get(
+            tab_id=tab_id,
+            user=user,
+            is_active=True
+        )
+        
+        # Update activity
+        session.update_activity()
+        return True
+    except TabSession.DoesNotExist:
         return False
     
     try:
